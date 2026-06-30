@@ -1,0 +1,86 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, classification_report
+
+# 1. Load and Preprocess Data
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# TODO: Normalize pixel values (0-255) to 0-1
+x_train = x_train / 255.0
+x_test  = x_test  / 255.0
+
+# 2. Build the DNN Architecture
+model = models.Sequential([
+    layers.Flatten(input_shape=(28, 28)),
+    # TODO: Two hidden dense layers with ReLU
+    layers.Dense(128, activation='relu'),
+    layers.Dense(64,  activation='relu'),
+    # Output layer for 10 classes
+    layers.Dense(10, activation='softmax')
+])
+
+# 3. Compile the Model
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Train the model
+history = model.fit(x_train, y_train, epochs=5, batch_size=32,
+                    validation_split=0.1)
+
+# Evaluate
+test_loss, test_acc = model.evaluate(x_test, y_test, verbose=0)
+print(f"Test Accuracy: {test_acc:.4f}")
+
+#PLOTS
+# --- Confusion Matrix ---
+y_pred = np.argmax(model.predict(x_test), axis=1)
+
+cm = confusion_matrix(y_test, y_pred)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=range(10), yticklabels=range(10))
+plt.title('Confusion Matrix – DNN on MNIST')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.tight_layout()
+plt.savefig('confusion_matrix.png', dpi=150)
+plt.show()
+
+# --- Training Curves ---
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].plot(history.history['accuracy'],    label='Train')
+axes[0].plot(history.history['val_accuracy'],label='Val')
+axes[0].set_title('Accuracy over Epochs')
+axes[0].set_xlabel('Epoch'); axes[0].set_ylabel('Accuracy')
+axes[0].legend()
+
+axes[1].plot(history.history['loss'],    label='Train')
+axes[1].plot(history.history['val_loss'],label='Val')
+axes[1].set_title('Loss over Epochs')
+axes[1].set_xlabel('Epoch'); axes[1].set_ylabel('Loss')
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig('training_curves.png', dpi=150)
+plt.show()
+
+# Find misclassified indices
+wrong_idx = np.where(y_pred != y_test)[0]
+
+fig, axes = plt.subplots(1, 3, figsize=(10, 3))
+for i, idx in enumerate(wrong_idx[:3]):
+    axes[i].imshow(x_test[idx], cmap='gray')
+    axes[i].set_title(f"ID:{idx}\nTrue:{y_test[idx]} | Pred:{y_pred[idx]}")
+    axes[i].axis('off')
+plt.suptitle('Misclassified Samples', fontsize=13)
+plt.tight_layout()
+plt.savefig('misclassified.png', dpi=150)
+plt.show()
