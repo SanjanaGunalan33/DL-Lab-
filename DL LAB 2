@@ -1,0 +1,231 @@
+#MLP TRAINING 
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+import tensorflow as tf
+tf.get_logger().setLevel('ERROR')
+from tensorflow import keras
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import json
+
+iris = load_iris()
+X, y = iris.data, iris.target
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+results = []
+
+configs = [
+    (1, 'sigmoid', 0.01),
+    (2, 'relu',    0.1),
+    (3, 'relu',    0.1),
+    (4, 'sigmoid', 0.1),
+]
+
+for exp, activation, lr in configs:
+    tf.random.set_seed(42)
+    model = keras.Sequential([
+        keras.layers.Dense(16, activation=activation, input_shape=(4,)),
+        keras.layers.Dense(8,  activation=activation),
+        keras.layers.Dense(3,  activation='softmax')
+    ])
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+    hist = model.fit(X_train, y_train, epochs=100, verbose=0)
+    final_loss = round(hist.history['loss'][-1], 4)
+    final_acc  = round(hist.history['accuracy'][-1] * 100, 1)
+    results.append({'exp': exp, 'activation': activation.capitalize(),
+                    'lr': lr, 'loss': final_loss, 'acc': final_acc})
+    print(f"Exp {exp}: {activation.upper()} lr={lr} -> loss={final_loss} acc={final_acc}%")
+
+print(json.dumps(results))
+
+#classification report
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+import tensorflow as tf
+tf.get_logger().setLevel('ERROR')
+from tensorflow import keras
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+
+iris = load_iris()
+X, y = iris.data, iris.target
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+configs = [
+    (1, 'sigmoid', 0.01),
+    (2, 'relu',    0.1),
+    (3, 'relu',    0.1),
+    (4, 'sigmoid', 0.1),
+]
+
+for exp, activation, lr in configs:
+    tf.random.set_seed(42)
+    model = keras.Sequential([
+        keras.layers.Dense(16, activation=activation, input_shape=(4,)),
+        keras.layers.Dense(8,  activation=activation),
+        keras.layers.Dense(3,  activation='softmax')
+    ])
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+    model.fit(X_train, y_train, epochs=100, verbose=0)
+    y_pred = np.argmax(model.predict(X_test, verbose=0), axis=1)
+    print(f"\n{'='*55}")
+    print(f"Exp {exp} | Activation: {activation.upper()} | LR: {lr}")
+    print('='*55)
+    print(classification_report(y_test, y_pred,
+          target_names=['Setosa', 'Versicolor', 'Virginica']))
+
+#Metrics
+import numpy as np, warnings
+warnings.filterwarnings('ignore')
+import tensorflow as tf
+tf.get_logger().setLevel('ERROR')
+from tensorflow import keras
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+iris = load_iris()
+X = StandardScaler().fit_transform(iris.data)
+y = iris.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+configs = [(1,'sigmoid',0.01),(2,'relu',0.1),(3,'relu',0.1),(4,'sigmoid',0.1)]
+
+for exp, act, lr in configs:
+    tf.random.set_seed(42)
+    model = keras.Sequential([
+        keras.layers.Dense(16, activation=act, input_shape=(4,)),
+        keras.layers.Dense(8,  activation=act),
+        keras.layers.Dense(3,  activation='softmax')
+    ])
+    model.compile(optimizer=keras.optimizers.Adam(lr),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+    model.fit(X_train, y_train, epochs=100, verbose=0)
+    y_pred = np.argmax(model.predict(X_test, verbose=0), axis=1)
+    acc  = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, average='macro')
+    rec  = recall_score(y_test, y_pred, average='macro')
+    f1   = f1_score(y_test, y_pred, average='macro')
+    print(f"Exp{exp} | {act} | lr={lr} | Acc={acc:.4f} | Prec={prec:.4f} | Rec={rec:.4f} | F1={f1:.4f}")
+
+#flowchart
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import FancyBboxPatch
+
+fig, axes = plt.subplots(1, 2, figsize=(18, 14))
+fig.patch.set_facecolor('#F5F7FA')
+
+C = {
+    'input':    '#2196F3',
+    'hidden':   '#4CAF50',
+    'output':   '#FF9800',
+    'loss':     '#E53935',
+    'grad':     '#9C27B0',
+    'update':   '#00BCD4',
+    'arrow_fwd':'#1565C0',
+    'arrow_bwd':'#6A1B9A',
+    'bg':       '#F5F7FA',
+}
+
+def draw_box(ax, x, y, w, h, label, sublabel, color, fontsize=10):
+    box = FancyBboxPatch((x - w/2, y - h/2), w, h,
+                         boxstyle="round,pad=0.02",
+                         facecolor=color, edgecolor='white',
+                         linewidth=2, zorder=3)
+    ax.add_patch(box)
+    ax.text(x, y + 0.02, label, ha='center', va='center',
+            fontsize=fontsize, fontweight='bold', color='white', zorder=4)
+    if sublabel:
+        ax.text(x, y - 0.07, sublabel, ha='center', va='center',
+                fontsize=7.5, color='#FFFFFFCC', zorder=4, style='italic')
+
+def arrow(ax, x1, y1, x2, y2, color, label=''):
+    ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
+                arrowprops=dict(arrowstyle='->', color=color,
+                                lw=2.0, connectionstyle="arc3,rad=0.0"), zorder=2)
+    if label:
+        mx, my = (x1+x2)/2, (y1+y2)/2
+        ax.text(mx + 0.04, my, label, fontsize=7.5, color=color,
+                va='center', style='italic', zorder=5)
+
+# ── Forward Pass ─────────────────────────────────────────────────────────────
+ax = axes[0]
+ax.set_facecolor(C['bg']); ax.set_xlim(0, 1); ax.set_ylim(-0.05, 1.1); ax.axis('off')
+ax.set_title('Forward Pass', fontsize=15, fontweight='bold', pad=12, color='#1F3D6B')
+
+steps_fwd = [
+    (0.5, 0.93, 'INPUT LAYER',    'x ∈ ℝ⁴  (normalised features)',                      C['input']),
+    (0.5, 0.74, 'HIDDEN LAYER 1', 'z¹ = W¹x + b¹\na¹ = σ(z¹) or ReLU(z¹)  [16 neurons]', C['hidden']),
+    (0.5, 0.54, 'HIDDEN LAYER 2', 'z² = W²a¹ + b²\na² = σ(z²) or ReLU(z²)  [8 neurons]',  C['hidden']),
+    (0.5, 0.34, 'OUTPUT LAYER',   'z³ = W³a² + b³\nŷ = Softmax(z³)  [3 neurons]',          C['output']),
+    (0.5, 0.14, 'LOSS',           'L = −Σ yᵢ log(ŷᵢ)\nSparse Categorical Crossentropy',    C['loss']),
+]
+for (x, y, lbl, sub, col) in steps_fwd:
+    draw_box(ax, x, y, 0.72, 0.13, lbl, sub, col)
+
+ys = [s[1] for s in steps_fwd]
+labels_fwd = ['x → weighted sum', 'a¹ → weighted sum', 'a² → weighted sum', 'ŷ vs y']
+for i in range(len(ys)-1):
+    arrow(ax, 0.5, ys[i]-0.065, 0.5, ys[i+1]+0.065, C['arrow_fwd'], labels_fwd[i])
+
+ax.text(0.5, 1.07, '① Forward Pass: Input → Prediction → Loss',
+        ha='center', fontsize=11, color='#1565C0', fontweight='bold')
+
+# ── Backward Pass ─────────────────────────────────────────────────────────────
+ax = axes[1]
+ax.set_facecolor(C['bg']); ax.set_xlim(0, 1); ax.set_ylim(-0.05, 1.1); ax.axis('off')
+ax.set_title('Backward Pass (Backpropagation)', fontsize=15,
+             fontweight='bold', pad=12, color='#4A0080')
+
+steps_bwd = [
+    (0.5, 0.93, 'LOSS GRADIENT',  '∂L/∂z³ = ŷ − y\n(softmax + CE combined)',           C['loss']),
+    (0.5, 0.74, 'OUTPUT WEIGHTS', '∂L/∂W³ = ∂L/∂z³ · (a²)ᵀ\n∂L/∂b³ = ∂L/∂z³',        C['grad']),
+    (0.5, 0.54, 'HIDDEN LAYER 2', '∂L/∂a² = (W³)ᵀ · ∂L/∂z³\n× activation derivative', C['grad']),
+    (0.5, 0.34, 'HIDDEN LAYER 1', '∂L/∂a¹ = (W²)ᵀ · ∂L/∂z²\n× activation derivative', C['grad']),
+    (0.5, 0.14, 'WEIGHT UPDATE',  'W ← W − α · ∂L/∂W\n(Adam: adaptive lr per param)',  C['update']),
+]
+for (x, y, lbl, sub, col) in steps_bwd:
+    draw_box(ax, x, y, 0.72, 0.13, lbl, sub, col)
+
+ys_b = [s[1] for s in steps_bwd]
+labels_bwd = ['chain rule →', 'propagate →', 'propagate →', 'gradient descent →']
+for i in range(len(ys_b)-1):
+    arrow(ax, 0.5, ys_b[i]-0.065, 0.5, ys_b[i+1]+0.065, C['arrow_bwd'], labels_bwd[i])
+
+ax.text(0.5, 1.07, '② Backward Pass: Loss → Gradient → Weight Update',
+        ha='center', fontsize=11, color='#6A1B9A', fontweight='bold')
+
+# ── Legend ────────────────────────────────────────────────────────────────────
+legend_items = [
+    mpatches.Patch(color=C['input'],  label='Input'),
+    mpatches.Patch(color=C['hidden'], label='Hidden Layer'),
+    mpatches.Patch(color=C['output'], label='Output Layer'),
+    mpatches.Patch(color=C['loss'],   label='Loss / Loss Gradient'),
+    mpatches.Patch(color=C['grad'],   label='Gradient (Backprop)'),
+    mpatches.Patch(color=C['update'], label='Weight Update (Adam)'),
+]
+fig.legend(handles=legend_items, loc='lower center', ncol=6,
+           frameon=True, fontsize=9, bbox_to_anchor=(0.5, -0.01),
+           facecolor='#EEEEEE', edgecolor='#CCCCCC')
+
+plt.suptitle('MLP — Forward & Backward Pass Flowchart\nIris Dataset | Hidden: 16→8 neurons | Output: Softmax',
+             fontsize=13, fontweight='bold', color='#1F3D6B', y=1.01)
+plt.tight_layout(pad=2.0)
+plt.savefig('mlp_flowchart.png', dpi=150, bbox_inches='tight', facecolor=C['bg'])
+plt.show()
